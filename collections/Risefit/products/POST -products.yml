@@ -1,0 +1,26 @@
+info:
+  name: POST /products
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:3000/products
+  body:
+    type: json
+    data: |-
+      {
+        "nome": "Whey Protein Concentrado 900g",
+        "descricao": "Suplemento proteico para ganho de massa muscular",
+        "preco": 129.90,
+        "estoque": 50,
+        "urlImagem": "https://exemplo.com/imagens/whey.png",
+        "ativo": true
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

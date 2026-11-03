@@ -1,0 +1,19 @@
+info:
+  name: GET /orders?status
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://localhost:3000/orders?status=PENDENTE
+  params:
+    - name: status
+      value: PENDENTE
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
