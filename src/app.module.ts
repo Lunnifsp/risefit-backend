@@ -9,6 +9,7 @@ import { PlansModule } from './plans/plans.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ProfessionalsModule } from './professionals/professionals.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
+import { ProductsModule } from './products/products.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -32,6 +33,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     PlansModule,
     ProfessionalsModule,
     ExercisesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
