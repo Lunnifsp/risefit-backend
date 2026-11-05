@@ -10,16 +10,25 @@ import {
   ValidationPipe,
   UsePipes,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { UpdateOrderDto } from './dto/update-order.dto.js';
 import { FindAllOrdersQueryDto } from './dto/find-all-orders-query.dto.js';
+import * as CheckoutDto from '../users/dto/create-checkout.dto.js';
 
 @Controller('orders')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
+
+  @Post('checkout')
+  @HttpCode(HttpStatus.CREATED)
+  processarCheckout(@Body() dto: CheckoutDto.CreateCheckoutDto) { 
+    return this.ordersService.processarCheckout(dto);
+  }
 
   @Post()
   create(@Body() dto: CreateOrderDto) {

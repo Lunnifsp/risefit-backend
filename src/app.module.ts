@@ -17,7 +17,11 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ObserveModule,
+    ObserveModule.forRoot({
+      appKey: process.env.OBSERVE_APP_KEY || 'dev_app_key',
+      appSecret: process.env.OBSERVE_APP_SECRET || 'dev_app_secret',
+      serviceId: process.env.OBSERVE_SERVICE_ID || 'risefit-backend',
+    }),
     PrismaModule,
     UsersModule,
     PlansModule,

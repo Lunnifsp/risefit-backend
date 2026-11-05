@@ -4,9 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { Prisma } from '../generated/prisma/client.js';
 import { OrderStatus } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { CreateCheckoutDto } from '../users/dto/create-checkout.dto.js';
 import type { CreateOrderDto } from './dto/create-order.dto.js';
 import type { UpdateOrderDto } from './dto/update-order.dto.js';
 
@@ -29,11 +31,12 @@ const orderInclude = {
       },
     },
   },
+  pagamento: true,
 };
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private validateId(id: number): number {
     if (!Number.isSafeInteger(id) || id <= 0) {
@@ -41,6 +44,89 @@ export class OrdersService {
     }
 
     return id;
+  }
+
+  async processarCheckout(dto: CreateCheckoutDto) {
+    const emailExistente = await this.prisma.user.findUnique({
+      where: { email: dto.usuario.email },
+    });
+
+    if (emailExistente) {
+      throw new ConflictException('Já existe um usuário cadastrado com este e-mail');
+    }
+
+    const cpfExistente = await this.prisma.user.findUnique({
+      where: { cpf: dto.usuario.cpf },
+    });
+
+    if (cpfExistente) {
+      throw new ConflictException('Já existe um usuário cadastrado com este CPF');
+    }
+
+    const SALT_ROUNDS = 10;
+    const senhaHash = await bcrypt.hash(dto.usuario.senha, SALT_ROUNDS);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const usuario = await tx.user.create({
+          data: {
+            nome: dto.usuario.nome,
+            email: dto.usuario.email,
+            senha: senhaHash,
+            cpf: dto.usuario.cpf,
+            sexo: dto.usuario.sexo,
+            dataNascimento: new Date(dto.usuario.dataNascimento),
+            telefone: dto.usuario.telefone,
+            cargo: dto.usuario.cargo ?? 'ALUNO',
+          },
+        });
+
+        await tx.address.create({
+          data: {
+            usuarioId: usuario.id,
+            cep: dto.endereco.cep,
+            estado: dto.endereco.estado,
+            cidade: dto.endereco.cidade,
+            bairro: dto.endereco.bairro,
+            rua: dto.endereco.rua,
+            numero: dto.endereco.numero,
+            complemento: dto.endereco.complemento,
+          },
+        });
+
+        const pedido = await tx.order.create({
+          data: {
+            usuarioId: usuario.id,
+            formaPagamento: dto.formaPagamento,
+            status: OrderStatus.CONFIRMADO,
+            total: new Prisma.Decimal(99.90), 
+          },
+        });
+
+        await tx.payment.create({
+          data: {
+            pedidoId: pedido.id,
+            token: dto.pagamento.token,
+            bandeira: dto.pagamento.bandeira,
+            ultimosDigitos: dto.pagamento.ultimosDigitos,
+          },
+        });
+
+        return {
+          mensagem: 'Checkout e cadastro realizados com sucesso!',
+          usuarioId: usuario.id,
+          pedidoId: pedido.id,
+        };
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException('Já existe um registro com estes dados únicos');
+        }
+      }
+
+      throw error;
+    }
   }
 
   async create(dto: CreateOrderDto) {
@@ -203,7 +289,6 @@ export class OrdersService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Caso haja atualização nos itens do pedido
       if (dto.itens !== undefined) {
         if (dto.itens.length === 0) {
           throw new BadRequestException('O pedido deve conter pelo menos um item');
@@ -217,7 +302,6 @@ export class OrdersService {
           );
         }
 
-        // Se o pedido anterior não estava cancelado, devolve o estoque dos itens antigos
         if (currentOrder.status !== OrderStatus.CANCELADO) {
           for (const oldItem of currentOrder.itens) {
             await tx.product.update({
@@ -280,7 +364,6 @@ export class OrdersService {
             subtotal,
           });
 
-          // Debita o estoque se o status não for CANCELADO
           if (targetStatus !== OrderStatus.CANCELADO) {
             await tx.product.update({
               where: { id: item.produtoId },
@@ -289,7 +372,6 @@ export class OrdersService {
           }
         }
 
-        // Remove itens antigos e insere os novos
         await tx.orderProduct.deleteMany({
           where: { pedidoId: orderId },
         });
@@ -309,9 +391,7 @@ export class OrdersService {
         });
       }
 
-      // Se apenas o status ou usuário foi alterado (sem alterar os itens)
       if (dto.status !== undefined && dto.status !== currentOrder.status) {
-        // Se mudou para CANCELADO, devolve os itens ao estoque
         if (dto.status === OrderStatus.CANCELADO) {
           for (const item of currentOrder.itens) {
             await tx.product.update({
@@ -320,7 +400,6 @@ export class OrdersService {
             });
           }
         }
-        // Se saiu de CANCELADO para outro status, valida e debita novamente o estoque
         else if (currentOrder.status === OrderStatus.CANCELADO) {
           for (const item of currentOrder.itens) {
             const product = await tx.product.findUnique({
@@ -357,7 +436,6 @@ export class OrdersService {
     const order = await this.findOne(orderId);
 
     return await this.prisma.$transaction(async (tx) => {
-      // Se o pedido não estiver cancelado, devolve os produtos ao estoque
       if (order.status !== OrderStatus.CANCELADO) {
         for (const item of order.itens) {
           await tx.product.update({
@@ -371,12 +449,10 @@ export class OrdersService {
         }
       }
 
-      // Remove os itens do pedido primeiro para respeitar integridade referencial
       await tx.orderProduct.deleteMany({
         where: { pedidoId: orderId },
       });
 
-      // Remove o pedido
       await tx.order.delete({
         where: { id: orderId },
       });
@@ -385,4 +461,3 @@ export class OrdersService {
     });
   }
 }
-
