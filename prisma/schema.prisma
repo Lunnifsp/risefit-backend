@@ -42,20 +42,23 @@ enum ExerciseLevel {
 }
 
 model User {
-  id             Int   @id @default(autoincrement())
-  nome           String   @db.VarChar(100)
-  email          String   @unique @db.VarChar(150)
-  senha          String   @db.VarChar(255)
-  dataNascimento DateTime @map("data_nascimento") @db.Date
-  telefone       String   @db.VarChar(20)
-  cargo          Cargo    @default(ALUNO)
-  criadoEm       DateTime @default(now()) @map("criado_em")
-  atualizadoEm   DateTime @updatedAt @map("atualizado_em")
+  id             Int       @id @default(autoincrement())
+  nome           String    @db.VarChar(100)
+  email          String    @unique @db.VarChar(150)
+  senha          String    @db.VarChar(255)
+  dataNascimento DateTime  @map("data_nascimento") @db.Date
+  telefone       String    @db.VarChar(20)
+  cpf            String?   @unique @db.VarChar(14) // Adicionado para o cadastro
+  sexo           String?   @db.VarChar(20)         // Adicionado para o cadastro
+  cargo          Cargo     @default(ALUNO)
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
 
   profissional Professional?
   assinaturas  Subscription[]
   pedidos      Order[]
   eventos      EventParticipant[]
+  enderecos    Address[]   // <--- Adicionada a relação de endereços
 
   @@index([cargo])
   @@map("usuarios")
@@ -170,7 +173,7 @@ model Product {
 model Order {
   id           Int      @id @default(autoincrement())
   usuarioId    Int      @map("usuarios_id")
-  formaPagamento String       @db.VarChar(20) // "credito" ou "debito"
+  formaPagamento String    @default("credito") @db.VarChar(20) 
   total        Decimal     @db.Decimal(10, 2)
   status       OrderStatus @default(PENDENTE)
   criadoEm     DateTime    @default(now()) @map("criado_em")
@@ -260,4 +263,22 @@ model Exercise {
   @@index([grupoMuscular])
   @@index([nivel])
   @@map("exercicios")
+}
+
+model Address {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int      @map("usuarios_id")
+  cep         String   @db.VarChar(9)
+  estado      String   @db.VarChar(2)
+  cidade      String   @db.VarChar(100)
+  bairro      String   @db.VarChar(100)
+  rua         String   @db.VarChar(150)
+  numero      String   @db.VarChar(20)
+  complemento String?  @db.VarChar(100)
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  usuario     User     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("enderecos")
 }
