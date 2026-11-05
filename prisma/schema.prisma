@@ -170,17 +170,31 @@ model Product {
 model Order {
   id           Int      @id @default(autoincrement())
   usuarioId    Int      @map("usuarios_id")
+  formaPagamento String       @db.VarChar(20) // "credito" ou "debito"
   total        Decimal     @db.Decimal(10, 2)
   status       OrderStatus @default(PENDENTE)
   criadoEm     DateTime    @default(now()) @map("criado_em")
   atualizadoEm DateTime    @updatedAt @map("atualizado_em")
 
   usuario User           @relation(fields: [usuarioId], references: [id])
+  pagamento      Payment?
   itens   OrderProduct[]
 
   @@index([usuarioId])
   @@index([status])
   @@map("pedidos")
+}
+model Payment {
+  id             Int      @id @default(autoincrement())
+  pedidoId       Int      @unique
+  token          String   @db.VarChar(255)
+  bandeira       String   @db.VarChar(50)
+  ultimosDigitos String   @db.VarChar(4)
+  criadoEm       DateTime @default(now())
+
+  pedido         Order    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@map("pagamentos")
 }
 
 model OrderProduct {
