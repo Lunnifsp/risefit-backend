@@ -11,6 +11,7 @@ import { ProfessionalsModule } from './professionals/professionals.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { OrdersModule } from './orders/orders.module.js';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -25,6 +26,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     PrismaModule,
     UsersModule,
     PlansModule,
+    SubscriptionsModule,
     ProfessionalsModule,
     ExercisesModule,
     ProductsModule,
@@ -33,4 +35,4 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

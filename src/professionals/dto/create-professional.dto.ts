@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 export const createProfessionalSchema = z.object({
@@ -8,6 +7,4 @@ export const createProfessionalSchema = z.object({
   urlFoto: z.string().url().max(255).optional(),
 });
 
-export type CreateProfessionalDto = z.infer<
-  typeof createProfessionalSchema
->;
+export type CreateProfessionalDto = z.infer<typeof createProfessionalSchema>;

@@ -9,7 +9,7 @@ import type { UpdatePlanDto } from './dto/update-plan.dto.js';
 
 @Injectable()
 export class PlansService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private validateId(id: number): number {
     if (!Number.isSafeInteger(id) || id <= 0) {
