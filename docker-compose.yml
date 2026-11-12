@@ -1,0 +1,15 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: risefit_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Gm01042008#
+      MYSQL_DATABASE: risefit
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+volumes:
+  mariadb_data:
