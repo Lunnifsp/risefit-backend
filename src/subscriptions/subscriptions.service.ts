@@ -54,7 +54,6 @@ export class SubscriptionsService {
   async create(dto: CreateSubscriptionDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: dto.usuarioId },
-      include: { profissional: true },
     });
     if (!user) throw new NotFoundException('Usuário não encontrado');
 
@@ -65,18 +64,15 @@ export class SubscriptionsService {
       throw new BadRequestException('Plano não encontrado ou inativo');
     }
 
-    // Um cadastro por usuário; profissional pode ter um segundo
-    const limite = user.profissional ? 2 : 1;
-    const existentes = await this.prisma.subscription.count({
+    // Um cadastro por usuário (canceladas não contam)
+    const existente = await this.prisma.subscription.findFirst({
       where: {
         usuarioId: dto.usuarioId,
         status: { not: SubscriptionStatus.CANCELADA },
       },
     });
-    if (existentes >= limite) {
-      throw new ConflictException(
-        'Este usuário já possui o número máximo de inscrições',
-      );
+    if (existente) {
+      throw new ConflictException('Este usuário já possui uma inscrição');
     }
 
     const dataInicio = dto.dataInicio ?? this.hoje();
