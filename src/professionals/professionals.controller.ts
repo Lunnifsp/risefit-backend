@@ -5,7 +5,8 @@ import {
   Body,
   Patch,
   Param,
-  Delete, ParseIntPipe
+  Delete,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ProfessionalsService } from './professionals.service.js';
 import { createProfessionalSchema } from './dto/create-professional.dto.js';
@@ -16,7 +17,7 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 
 @Controller('professionals')
 export class ProfessionalsController {
-  constructor(private readonly professionalsService: ProfessionalsService) { }
+  constructor(private readonly professionalsService: ProfessionalsService) {}
 
   @Post()
   create(

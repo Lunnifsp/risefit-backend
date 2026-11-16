@@ -21,7 +21,7 @@ const include = {
 
 @Injectable()
 export class ProfessionalsService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private validateId(id: number): number {
     if (!Number.isSafeInteger(id) || id <= 0) {

@@ -17,7 +17,7 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 
 @Controller('plans')
 export class PlansController {
-  constructor(private readonly plansService: PlansService) { }
+  constructor(private readonly plansService: PlansService) {}
 
   @Post()
   create(@Body(new ZodValidationPipe(createPlanSchema)) dto: CreatePlanDto) {

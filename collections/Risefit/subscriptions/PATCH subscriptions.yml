@@ -1,0 +1,21 @@
+info:
+  name: PATCH /subscriptions
+  type: http
+  seq: 1
+
+http:
+  method: PATCH
+  url: http://localhost:3000/subscriptions/1
+  body:
+    type: json
+    data: |-
+      {
+        "status": "EXPIRADA"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
