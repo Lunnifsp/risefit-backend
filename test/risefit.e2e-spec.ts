@@ -15,6 +15,7 @@ import { getApp, getPrisma, closeApp } from './setup-e2e.js';
 
 let app: INestApplication;
 let server: any;
+const uniqueSuffix = Date.now();
 
 // Shared IDs populated during test runs (respects FK insertion order)
 const ids = {
@@ -22,6 +23,7 @@ const ids = {
   userForProfessional: 0,
   userForSubscription: 0,
   userForOrder: 0,
+  checkoutUserId: 0,
   professional: 0,
   plan: 0,
   planForSubscription: 0,
@@ -29,6 +31,7 @@ const ids = {
   product2: 0,
   subscription: 0,
   order: 0,
+  checkoutOrderId: 0,
   exercise: 0 as number | bigint,
 };
 
@@ -48,6 +51,10 @@ afterAll(async () => {
       await prisma.payment.deleteMany({ where: { pedidoId: ids.order } });
       await prisma.order.deleteMany({ where: { id: ids.order } });
     }
+    if (ids.checkoutOrderId) {
+      await prisma.payment.deleteMany({ where: { pedidoId: ids.checkoutOrderId } });
+      await prisma.order.deleteMany({ where: { id: ids.checkoutOrderId } });
+    }
 
     // Subscriptions
     if (ids.subscription) {
@@ -61,7 +68,7 @@ afterAll(async () => {
 
     // Exercises
     if (ids.exercise) {
-      await prisma.exercise.deleteMany({ where: { id: ids.exercise } });
+      await prisma.exercise.deleteMany({ where: { id: BigInt(ids.exercise) } });
     }
 
     // Products
@@ -80,12 +87,18 @@ afterAll(async () => {
       await prisma.plan.deleteMany({ where: { id: ids.planForSubscription } });
     }
 
+    // Checkout address
+    if (ids.checkoutUserId) {
+      await prisma.address.deleteMany({ where: { usuarioId: ids.checkoutUserId } });
+    }
+
     // Users (last — everything else depends on them)
     const userIds = [
       ids.user,
       ids.userForProfessional,
       ids.userForSubscription,
       ids.userForOrder,
+      ids.checkoutUserId,
     ].filter(Boolean);
     if (userIds.length) {
       await prisma.user.deleteMany({ where: { id: { in: userIds } } });
@@ -112,8 +125,6 @@ describe('AppController /', () => {
 // 2. UsersController /users
 // ============================================================================
 describe('UsersController /users', () => {
-  const uniqueSuffix = Date.now();
-
   // ---------- Success flows ----------
   it('POST /users → 201 creates a user', async () => {
     const res = await request(server)
@@ -639,6 +650,78 @@ describe('SubscriptionsController /subscriptions', () => {
 // 8. OrdersController /orders
 // ============================================================================
 describe('OrdersController /orders', () => {
+  it('POST /orders/checkout → 201 creates user, address, order and payment', async () => {
+    const checkoutSuffix = Date.now();
+    const res = await request(server)
+      .post('/orders/checkout')
+      .send({
+        usuario: {
+          nome: 'Checkout User',
+          email: `checkout-${checkoutSuffix}@e2e.test`,
+          senha: 'StrongPassword123',
+          cpf: `${checkoutSuffix}`.slice(-11).padStart(11, '0'),
+          sexo: 'M',
+          dataNascimento: '1995-05-15',
+          telefone: '11988887777',
+          cargo: 'ALUNO',
+        },
+        endereco: {
+          cep: '01001000',
+          estado: 'SP',
+          cidade: 'São Paulo',
+          bairro: 'Sé',
+          rua: 'Praça da Sé',
+          numero: '100',
+          complemento: 'Apto 1',
+        },
+        formaPagamento: 'credito',
+        pagamento: {
+          token: 'tok_test123',
+          bandeira: 'visa',
+          ultimosDigitos: '1234',
+        },
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty('mensagem');
+    expect(res.body).toHaveProperty('usuarioId');
+    expect(res.body).toHaveProperty('pedidoId');
+    ids.checkoutUserId = res.body.usuarioId;
+    ids.checkoutOrderId = res.body.pedidoId;
+  });
+
+  it('POST /orders/checkout → 409 conflict when duplicate email', async () => {
+    const res = await request(server)
+      .post('/orders/checkout')
+      .send({
+        usuario: {
+          nome: 'Checkout Duplicate',
+          email: `profuser-${uniqueSuffix}@e2e.test`,
+          senha: 'StrongPassword123',
+          cpf: '99988877766',
+          sexo: 'M',
+          dataNascimento: '1995-05-15',
+          telefone: '11988887777',
+        },
+        endereco: {
+          cep: '01001000',
+          estado: 'SP',
+          cidade: 'São Paulo',
+          bairro: 'Sé',
+          rua: 'Praça da Sé',
+          numero: '100',
+        },
+        formaPagamento: 'credito',
+        pagamento: {
+          token: 'tok_test123',
+          bandeira: 'visa',
+          ultimosDigitos: '1234',
+        },
+      });
+
+    expect(res.status).toBe(409);
+  });
+
   it('POST /orders → 201 creates an order with items', async () => {
     const res = await request(server)
       .post('/orders')

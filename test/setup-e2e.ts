@@ -10,6 +10,11 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
+// Replicate main.ts BigInt serialization for JSON responses
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 let app: INestApplication;
 let prisma: PrismaService;
 
