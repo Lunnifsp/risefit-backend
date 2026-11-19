@@ -38,7 +38,6 @@ export class SubscriptionsService {
     return d;
   }
 
-  // Sincroniza no banco as assinaturas que venceram
   private async syncExpiredSubscriptions() {
     await this.prisma.subscription.updateMany({
       where: {
@@ -51,7 +50,6 @@ export class SubscriptionsService {
     });
   }
 
-  // Garante que mesmo em criação/edição com data passada o retorno já venha EXPIRADA
   private present<
     T extends { status: SubscriptionStatus; dataFim: Date | null },
   >(s: T): T {
@@ -86,9 +84,8 @@ export class SubscriptionsService {
     });
     if (!plan || !plan.ativo) {
       throw new BadRequestException('Plano não encontrado ou inativo');
-    }
+    } 
 
-    // Um cadastro ativo/pendente por usuário (canceladas e expiradas não bloqueiam)
     const existente = await this.prisma.subscription.findFirst({
       where: {
         usuarioId: dto.usuarioId,
@@ -125,8 +122,6 @@ export class SubscriptionsService {
     return this.prisma.subscription.findMany({
       where: {
         usuarioId: filtros.usuarioId,
-        // Mantém a regra original: se não filtrar status, esconde as CANCELADAS.
-        // Se passar ?status=CANCELADA (ou ATIVA / EXPIRADA), traz exatamente o status pedido!
         status: filtros.status ?? { not: SubscriptionStatus.CANCELADA },
       },
       include,
